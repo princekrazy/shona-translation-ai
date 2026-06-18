@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from translator import translate_text
 
 from database import SessionLocal, engine, Base
-from models import Translation
+from models import Translation, Feedback
 import models  # ensures table registration
 
 # create tables
@@ -34,6 +34,11 @@ def get_db():
 
 class TranslationRequest(BaseModel):
     text: str
+
+class FeedbackRequest(BaseModel):
+    translation_id: int
+    rating: str
+    suggested_translation: str = ""
 
 
 @app.get("/")
@@ -76,3 +81,23 @@ def history(db: Session = Depends(get_db)):
         }
         for r in results
     ]
+@app.post("/feedback")
+def submit_feedback(
+    req: FeedbackRequest,
+    db: Session = Depends(get_db)
+):
+    feedback = Feedback(
+        translation_id=req.translation_id,
+        rating=req.rating,
+        suggested_translation=req.suggested_translation
+    )
+
+    db.add(feedback)
+    db.commit()
+
+    return {
+        "message": "Feedback saved"
+    }
+@app.get("/feedback")
+def get_feedback(db: Session = Depends(get_db)):
+    return db.query(Feedback).all()
