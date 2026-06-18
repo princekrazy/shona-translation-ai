@@ -1,8 +1,9 @@
 <!doctype html>
 <html>
   <head>
-    <title>Shona Translator AI</title>
+    <title>Shona AI Translator</title>
   </head>
+
   <body>
     <h2>English → Shona Translator</h2>
 
@@ -13,7 +14,21 @@
     <h3>Result:</h3>
     <p id="result"></p>
 
+    <div id="feedbackBox" style="display: none">
+      <h3>Was this good?</h3>
+
+      <button id="goodBtn">👍 Good</button>
+      <button id="badBtn">👎 Bad</button>
+
+      <br /><br />
+
+      <input id="suggestion" placeholder="Suggest better translation" />
+      <button id="suggestBtn">Submit Suggestion</button>
+    </div>
+
     <script>
+      let lastTranslationId = null;
+
       document.getElementById("btn").addEventListener("click", async () => {
         const text = document.getElementById("text").value;
 
@@ -24,8 +39,43 @@
         });
 
         const data = await res.json();
+
         document.getElementById("result").innerText = data.translation;
+
+        lastTranslationId = data.id;
+
+        document.getElementById("feedbackBox").style.display = "block";
       });
+
+      document.getElementById("goodBtn").addEventListener("click", async () => {
+        await sendFeedback("good");
+      });
+
+      document.getElementById("badBtn").addEventListener("click", async () => {
+        await sendFeedback("bad");
+      });
+
+      document
+        .getElementById("suggestBtn")
+        .addEventListener("click", async () => {
+          await sendFeedback("bad");
+        });
+
+      async function sendFeedback(rating) {
+        const suggestion = document.getElementById("suggestion").value;
+
+        await fetch("http://127.0.0.1:8000/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            translation_id: lastTranslationId,
+            rating: rating,
+            suggested_translation: suggestion,
+          }),
+        });
+
+        alert("Thanks for your feedback!");
+      }
     </script>
   </body>
 </html>
