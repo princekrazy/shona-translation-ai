@@ -2,15 +2,9 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
 from translator import translate_text
-
-from database import SessionLocal, engine, Base
+from database import Base, engine, SessionLocal
 from models import Translation, Feedback
-import models  # ensures table registration
-
-# create tables
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -23,7 +17,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# DB dependency
+Base.metadata.create_all(bind=engine)
+
+class TranslationRequest(BaseModel):
+    text: str
+class FeedbackRequest(BaseModel):
+    translation_id: int
+    rating: str
+    suggested_translation: str = ""
+
 def get_db():
     db = SessionLocal()
     try:
@@ -31,20 +33,9 @@ def get_db():
     finally:
         db.close()
 
-
-class TranslationRequest(BaseModel):
-    text: str
-
-class FeedbackRequest(BaseModel):
-    translation_id: int
-    rating: str
-    suggested_translation: str = ""
-
-
 @app.get("/")
 def root():
     return {"message": "Shona AI API running"}
-
 
 @app.post("/translate")
 def translate(req: TranslationRequest, db: Session = Depends(get_db)):
@@ -62,11 +53,8 @@ def translate(req: TranslationRequest, db: Session = Depends(get_db)):
     return {
         "id": record.id,
         "original": req.text,
-        "translation": translated,
-        "source_lang": "en",
-        "target_lang": "sn"
+        "translation": translated
     }
-
 
 @app.get("/history")
 def history(db: Session = Depends(get_db)):
@@ -76,11 +64,13 @@ def history(db: Session = Depends(get_db)):
         {
             "id": r.id,
             "original": r.source_text,
-            "translation": r.translated_text,
-            "created_at": r.created_at
+            "translation": r.translated_text
         }
         for r in results
     ]
+@app.get("/feedback")
+def get_feedback(db: Session = Depends(get_db)):
+    return db.query(Feedback).all()
 @app.post("/feedback")
 def submit_feedback(
     req: FeedbackRequest,
@@ -98,9 +88,6 @@ def submit_feedback(
     return {
         "message": "Feedback saved"
     }
-@app.get("/feedback")
-def get_feedback(db: Session = Depends(get_db)):
-    return db.query(Feedback).all()
 @app.get("/stats")
 def stats(db: Session = Depends(get_db)):
     total = db.query(Translation).count()
