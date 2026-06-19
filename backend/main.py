@@ -101,3 +101,15 @@ def submit_feedback(
 @app.get("/feedback")
 def get_feedback(db: Session = Depends(get_db)):
     return db.query(Feedback).all()
+@app.get("/stats")
+def stats(db: Session = Depends(get_db)):
+    total = db.query(Translation).count()
+
+    good = db.query(Feedback).filter(Feedback.rating == "good").count()
+    bad = db.query(Feedback).filter(Feedback.rating == "bad").count()
+
+    return {
+        "total_translations": total,
+        "good_feedback": good,
+        "bad_feedback": bad
+    }
