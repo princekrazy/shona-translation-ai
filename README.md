@@ -35,7 +35,7 @@ https://shona-translation-ai.onrender.com
 
 ---
 
-## 🔗 API Endpoints
+##  API Endpoints
 
 ### Translate text
 
